@@ -1,12 +1,34 @@
 import streamlit as st
 from agent.react_agent import ReactAgent
+from rag.vector_store import VectorStoreService
 
 # 配置页面
 st.set_page_config(
     page_title="Vacuum Agent - 扫地机器人智能助手",
     page_icon="🤖",
-    layout="centered"
+    layout="wide"
 )
+
+# 侧边栏：知识库管理与系统状态
+with st.sidebar:
+    st.header("⚙️ 系统管理")
+    st.markdown("---")
+    st.subheader("📚 知识库状态")
+    
+    if st.button("🔄 更新/构建知识库", use_container_width=True):
+        with st.spinner("正在解析文档并构建向量库，请稍候..."):
+            try:
+                vs_service = VectorStoreService()
+                vs_service.load_document()
+                st.success("知识库更新成功！")
+            except Exception as e:
+                st.error(f"知识库构建失败: {str(e)}")
+                
+    st.markdown("*(点击上方按钮将 `data/` 目录下的最新文件入库)*")
+    
+    st.markdown("---")
+    st.markdown("### 🛠️ 可用工具")
+    st.markdown("- 📖 知识库检索 (RAG)\n- 🌤️ 城市天气查询\n- 📍 用户位置查询\n- 👤 用户ID查询\n- 📊 外部历史数据对比")
 
 # 页面标题和描述
 st.title("🤖 Vacuum Agent 智能助手")
