@@ -1,0 +1,13 @@
+# 天气及空气质量 API 配置
+# 这里使用免费且免 key 的 Open-Meteo API 进行真实数据获取
+geocoding:
+  url: "https://geocoding-api.open-meteo.com/v1/search"
+  timeout: 5
+
+weather:
+  url: "https://api.open-meteo.com/v1/forecast"
+  timeout: 5
+
+air_quality:
+  url: "https://air-quality-api.open-meteo.com/v1/air-quality"
+  timeout: 5
