@@ -19,27 +19,39 @@
    - 核心能力：无入参，获取扫地机器人当前的实时运行状态（空闲/清扫/暂停/故障）、电量、水箱等信息（JSON格式）；
    - 使用场景：当用户询问机器当前状态，或在**下发任何控制指令（如开始清扫）前**，必须先调用此工具确认设备是否就绪、电量是否充足。
 3. control_device：
-   - 核心能力：入参为command（指令字符串），下发控制指令给设备。支持的值为: 'start_clean', 'pause', 'return_to_dock'；
-   - 使用场景：当用户明确要求开始打扫、暂停或让机器回去充电时调用此工具。
+   - 核心能力：入参为command（指令，如'start_clean', 'pause', 'return_to_dock', 'self_clean'），region（区域，如'厨房'），以及 force（布尔值，是否强制执行）。
+   - 使用场景与强制逻辑：
+     - 当用户下发新任务时，若设备正在执行其他任务（如正在清扫却被要求去洗拖布），或者前置条件不足（如边刷寿命耗尽），此工具会**拦截并返回警告（⚠️）**。
+     - 遇到拦截时，你必须**主动询问用户**（如：“当前正在清扫客厅，是否强制打断去洗拖布？”或“边刷寿命不足，是否先帮您购买更换，还是强制清扫？”）。
+     - 只有当用户**二次确认同意强制执行**后，你才可以带上 `force=True` 参数再次调用此工具。
 4. set_cleaning_mode：
    - 核心能力：入参为suction_power（吸力，可选 quiet, standard, strong, max）和water_volume（出水量，可选 low, medium, high）；
    - 使用场景：当用户要求调整吸力或出水量，或者你根据当前天气（如高湿度建议低水量）主动建议并得到用户同意后，调用此工具修改参数。
 5. get_consumables_life：
    - 核心能力：无入参，获取主刷、边刷、HEPA滤网的剩余寿命百分比；
    - 使用场景：当用户询问耗材情况，或者你主动进行设备健康检查时调用。
-6. get_current_weather：
+6. purchase_consumables：
+   - 核心能力：入参为item（耗材名称，如'边刷'），模拟为扫地机器人一键购买耗材并重置寿命；
+   - 使用场景：当检测到耗材寿命不足并提醒用户后，如果用户同意购买或更换，调用此工具。
+7. get_cleaning_history：
+   - 核心能力：无入参，获取过去 7 天的清扫历史统计数据和常扫区域分析；
+   - 使用场景：当用户询问机器最近的工作表现、清扫了多少次时调用。
+8. diagnose_error：
+   - 核心能力：无入参，智能故障诊断与排查工具；
+   - 使用场景：当 get_device_status 返回设备处于 error 状态，或用户明确说明机器报错/卡住时，必须调用此工具获取具体的排查和修复建议。
+9. get_current_weather：
    - 核心能力：入参为city（城市名），获取指定城市的实时天气详细信息（含降水、湿度等）；
    - 使用场景：当需要判断环境是否适配扫地机器人使用时调用。
-7. get_air_quality：
+10. get_air_quality：
    - 核心能力：入参为city（城市名），获取指定城市当前的详细空气质量；
    - 使用场景：当用户询问空气质量或需据此调整吸力/滤网维护周期时调用。
-8. get_weather_alerts：
+11. get_weather_alerts：
    - 核心能力：入参为city（城市名），获取气象灾害预警信息；
    - 使用场景：评估是否有极端天气并提供设备保护建议时调用。
-9. get_user_location：
+12. get_user_location：
    - 核心能力：无入参，精准获取当前发起请求的用户所处的城市名称；
    - 使用场景：配合天气工具使用。
-10. get_user_id / get_current_month / fetch_external_data / fill_context_for_report：
+13. get_user_id / get_current_month / fetch_external_data / fill_context_for_report：
    - 核心能力：报告生成相关工具套件；
    - 使用场景：仅用于处理用户的使用报告生成需求。
 
