@@ -183,11 +183,11 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### 🛠️ 可用工具")
-    st.markdown("- 📖 知识库检索 (RAG)\n- 🌤️ 城市天气查询\n- 🌬️ 空气质量分析\n- 📍 用户位置查询\n- 👤 用户ID查询\n- 📊 外部历史数据对比")
+    st.markdown("- 🎮 **设备控制** (启动/暂停/回充)\n- 🩺 **设备状态与耗材监测**\n- 📖 知识库检索 (RAG)\n- 🌤️ 城市天气与气象预警\n- 🌬️ 空气质量分析\n- 📊 外部历史数据对比")
 
 # 页面标题和描述
-st.title("✨ Vacuum Agent 中枢")
-st.markdown("你好！我是专注于**扫地机器人**领域的智能助手。无论是选购指南、维护保养，还是结合实时天气与空气质量的清洁建议，我都能为您解答！")
+st.title("✨ Vacuum Agent 智能管家")
+st.markdown("你好！我是您的**专属数字管家**。我不仅能为您解答选购和维护问题，还能**实时监测您家中扫地机器人的状态，并直接执行清扫指令**！")
 
 # 初始化 Agent 实例 (存入 session_state 以避免重复初始化)
 if "agent" not in st.session_state:
