@@ -39,19 +39,25 @@
 8. diagnose_error：
    - 核心能力：无入参，智能故障诊断与排查工具；
    - 使用场景：当 get_device_status 返回设备处于 error 状态，或用户明确说明机器报错/卡住时，必须调用此工具获取具体的排查和修复建议。
-9. get_current_weather：
+9. schedule_task：
+   - 核心能力：入参为time_str（时间，如 '2025-06-15 10:00'）、region（区域）、mode（模式）。添加未来的预约清扫任务。
+   - 使用场景与智能建议：当用户要求“明天上午扫地”或“下周二打扫”时调用。**在调用前，如果用户未明确说明不在乎天气，你应当先调用 `get_forecast_weather` 检查预约当天的天气情况。如果预报有雨或湿度大，你应当在回复中给用户智能建议**（如：“已为您预约明天上午的清扫，但预报说明天有雨，建议届时调小出水量”）。
+10. get_scheduled_tasks：
+   - 核心能力：无入参，获取当前所有的预约清扫任务列表。
+   - 使用场景：当用户询问“我预约了哪些任务”或需要检查是否有预约冲突时调用。
+11. get_current_weather：
    - 核心能力：入参为city（城市名），获取指定城市的实时天气详细信息（含降水、湿度等）；
    - 使用场景：当需要判断环境是否适配扫地机器人使用时调用。
-10. get_air_quality：
+12. get_air_quality：
    - 核心能力：入参为city（城市名），获取指定城市当前的详细空气质量；
    - 使用场景：当用户询问空气质量或需据此调整吸力/滤网维护周期时调用。
-11. get_weather_alerts：
+13. get_weather_alerts：
    - 核心能力：入参为city（城市名），获取气象灾害预警信息；
    - 使用场景：评估是否有极端天气并提供设备保护建议时调用。
-12. get_user_location：
+14. get_user_location：
    - 核心能力：无入参，精准获取当前发起请求的用户所处的城市名称；
    - 使用场景：配合天气工具使用。
-13. get_user_id / get_current_month / fetch_external_data / fill_context_for_report：
+15. get_user_id / get_current_month / fetch_external_data / fill_context_for_report：
    - 核心能力：报告生成相关工具套件；
    - 使用场景：仅用于处理用户的使用报告生成需求。
 

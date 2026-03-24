@@ -1,3 +1,4 @@
+import datetime
 from utils.config_handler import prompts_conf
 from utils.path_tool import get_abs_path
 from utils.logger_handler import logger
@@ -12,7 +13,10 @@ def load_system_prompts():
         raise e
 
     try:
-        return open(system_prompt_path, "r", encoding="utf-8").read()
+        prompt_content = open(system_prompt_path, "r", encoding="utf-8").read()
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        prompt_content += f"\n\n当前系统时间是：{current_time}\n当你处理与时间相关的请求（如预约任务）时，请务必以这个当前时间为基准进行计算。"
+        return prompt_content
     except Exception as e:
         logger.error(f"[load_system_prompt] 解析系统提示词出错，{str(e)}")
         raise e
@@ -42,7 +46,10 @@ def load_report_prompt():
         raise e
 
     try:
-        return open(report_prompt_path, "r", encoding="utf-8").read()
+        prompt_content = open(report_prompt_path, "r", encoding="utf-8").read()
+        current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        prompt_content += f"\n\n当前系统时间是：{current_time}\n当你处理与时间相关的请求（如预约任务）时，请务必以这个当前时间为基准进行计算。"
+        return prompt_content
     except Exception as e:
         logger.error(f"[load_report_prompt] 解析报告生成提示词出错，{str(e)}")
         raise e

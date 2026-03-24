@@ -13,6 +13,7 @@ _device_state = {
     "water_level": "high",  # 水箱水量：high, medium, low, empty
     "dustbox_full": False,  # 尘盒是否已满
     "current_task": None,   # 记录当前清扫任务的信息（如开始时间、区域）
+    "scheduled_tasks": [],  # 预约任务列表，元素为字典，如 {"id": 1, "time": "2025-06-15 10:00", "region": "客厅", "mode": "standard"}
     "consumables": {
         "main_brush": 85,  # 主刷寿命百分比
         "side_brush": 5,   # 边刷寿命百分比 (模拟需要更换的情况)
@@ -208,3 +209,52 @@ def diagnose_error() -> str:
         diagnosis += "排查建议：\n请重启设备或清理主刷、边刷及尘盒。如问题依旧，请联系售后客服。"
         
     return diagnosis
+
+@tool(description="为扫地机器人添加预约清扫任务。需要提供 time_str（格式必须为 'YYYY-MM-DD HH:MM'，如 '2025-06-15 10:00'）、region（如 '全局', '客厅'）和 mode（可选，如 'standard', 'strong'）。如果预约时间与现有任务冲突，将返回失败提示。建议在添加预约前，结合 get_forecast_weather 检查未来天气情况（如是否下雨）以给出更智能的建议。")
+def schedule_task(time_str: str, region: str = "全局", mode: str = "standard") -> str:
+    """添加智能预约清扫任务"""
+    logger.info(f"[DeviceTool] 添加预约任务 - 时间: {time_str}, 区域: {region}, 模式: {mode}")
+    
+    # 简单校验时间格式
+    try:
+        task_time = datetime.strptime(time_str, "%Y-%m-%d %H:%M")
+    except ValueError:
+        return "预约失败：时间格式错误。请使用 'YYYY-MM-DD HH:MM' 格式，例如 '2025-06-15 10:00'。"
+        
+    # 检查过去的时间
+    # 这里为了演示，我们假设当前时间是 2026-03-23（基于环境上下文），如果在真实环境应该用 datetime.now()
+    # 简单起见，这里不严格限制必须大于真实当前时间，只做逻辑展示
+    
+    # 检查时间冲突（假设每个任务至少需要 1 小时）
+    for existing_task in _device_state["scheduled_tasks"]:
+        existing_time = datetime.strptime(existing_task["time"], "%Y-%m-%d %H:%M")
+        if abs((task_time - existing_time).total_seconds()) < 3600:
+            return f"预约失败：时间冲突。在 {existing_task['time']} 已经有一个清扫【{existing_task['region']}】的预约任务。请选择相隔至少 1 小时的时间。"
+            
+    # 生成任务 ID 并添加
+    task_id = len(_device_state["scheduled_tasks"]) + 1
+    new_task = {
+        "id": task_id,
+        "time": time_str,
+        "region": region,
+        "mode": mode
+    }
+    _device_state["scheduled_tasks"].append(new_task)
+    
+    # 按照时间排序
+    _device_state["scheduled_tasks"].sort(key=lambda x: x["time"])
+    
+    return f"预约成功！已为您安排在 {time_str} 清扫【{region}】（模式：{mode}）。任务 ID：{task_id}。"
+
+@tool(description="获取当前所有的预约清扫任务列表。当用户询问'我预约了哪些任务'或需要检查预约冲突时调用。")
+def get_scheduled_tasks() -> str:
+    """获取当前预约任务列表"""
+    logger.info("[DeviceTool] 获取预约任务列表")
+    tasks = _device_state["scheduled_tasks"]
+    if not tasks:
+        return "当前没有任何预约清扫任务。"
+        
+    result = "【当前预约任务列表】\n"
+    for t in tasks:
+        result += f"- 任务 ID: {t['id']}, 时间: {t['time']}, 区域: {t['region']}, 模式: {t['mode']}\n"
+    return result

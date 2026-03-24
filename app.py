@@ -35,21 +35,57 @@ st.markdown("""
     [data-testid="stChatMessage"] {
         border-radius: 1rem;
         padding: 1rem 1.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 1.5rem;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(15, 23, 42, 0.4) !important;
+        backdrop-filter: blur(10px);
     }
     
     /* 用户气泡特别样式 */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
         border-bottom-right-radius: 0;
+        border-left: 4px solid #818cf8;
     }
     
     /* AI气泡特别样式 */
     [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
         border-bottom-left-radius: 0;
-        background: rgba(56, 189, 248, 0.03) !important;
-        border: 1px solid rgba(56, 189, 248, 0.1);
+        background: rgba(56, 189, 248, 0.05) !important;
+        border: 1px solid rgba(56, 189, 248, 0.15);
+        border-left: 4px solid #38bdf8;
+    }
+    
+    /* 思考过程 Expander 样式美化 */
+    [data-testid="stExpander"] {
+        border: 1px solid rgba(56, 189, 248, 0.2) !important;
+        border-radius: 0.75rem !important;
+        background: rgba(15, 23, 42, 0.5) !important;
+        margin-top: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    [data-testid="stExpander"] summary {
+        color: #7dd3fc !important;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.9rem !important;
+    }
+    
+    [data-testid="stExpander"] p, [data-testid="stExpander"] li {
+        color: #94a3b8 !important;
+        font-size: 0.85rem !important;
+        line-height: 1.5 !important;
+    }
+    
+    /* Expander 内部的代码块样式 */
+    [data-testid="stExpander"] pre {
+        background-color: rgba(0, 0, 0, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+    [data-testid="stExpander"] code {
+        color: #a78bfa !important;
     }
     
     /* 侧边栏玻璃拟态增强 */
@@ -200,6 +236,18 @@ if "messages" not in st.session_state:
 # 渲染历史对话
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
+        if message["role"] == "assistant" and message.get("thoughts"):
+            # 使用 expander 优雅地展示思考过程
+            with st.expander("🧠 查看管家的思考与工具调用过程", expanded=False):
+                for thought in message["thoughts"]:
+                    if not isinstance(thought, dict):
+                        continue
+                    st.markdown(f"**Thought:**\n{thought.get('thought', '')}")
+                    if thought.get("tool"):
+                        st.markdown(f"🛠️ **Tool:** `{thought.get('tool')}`\n- **Input:** `{thought.get('tool_input', '')}`")
+                    if thought.get("observation"):
+                        st.markdown(f"👁️ **Observation:**\n```\n{thought.get('observation')}\n```")
+                    st.markdown("---")
         st.markdown(message["content"])
 
 # 处理用户输入
@@ -209,24 +257,79 @@ if prompt := st.chat_input("请输入您的问题，例如：扫地机器人日�
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 生成并展示助手的回复
+    # 获取AI响应并解析出思考过程和最终回答
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-        
-        try:
-            # 调用 Agent 的流式输出方法
-            for chunk in st.session_state.agent.execute_stream(prompt):
-                full_response = chunk
-                # 添加闪烁光标效果，增强交互体验
-                message_placeholder.markdown(full_response + "▌")
-            
-            # 最终结果去掉光标
-            message_placeholder.markdown(full_response)
-        except Exception as e:
-            st.error(f"发生错误: {str(e)}")
-            full_response = "抱歉，我遇到了一些问题，请稍后再试。"
-            
-    # 将助手回复添加到历史
-    if full_response:
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        with st.spinner("思考中..."):
+            try:
+                # 调用底层的 stream 方法来捕获所有中间事件
+                thoughts_data = []
+                final_output = "抱歉，我遇到了一些问题，未能生成完整回答。"
+                
+                # 构造输入
+                input_dict = {
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+                
+                # 使用 stream 获取完整的执行过程（包括工具调用和结果）
+                # 这里假设底层是基于 langgraph 的 Agent，支持 stream
+                for event in st.session_state.agent.agent.stream(input_dict, stream_mode="values", context={"report": False}):
+                    if "messages" in event:
+                        latest_msg = event["messages"][-1]
+                        
+                        # 记录最终的 AIMessage
+                        if latest_msg.type == "ai" and latest_msg.content:
+                            final_output = latest_msg.content
+                            
+                        # 捕获工具调用 (Thought & Tool)
+                        if hasattr(latest_msg, "tool_calls") and latest_msg.tool_calls:
+                            for tc in latest_msg.tool_calls:
+                                if not tc: continue
+                                # 尝试从消息的 content 中提取 Thought，如果没有则使用默认文本
+                                thought_text = latest_msg.content.strip() if isinstance(latest_msg.content, str) and latest_msg.content else f"决定调用工具：{tc.get('name', 'Unknown') if isinstance(tc, dict) else getattr(tc, 'name', 'Unknown')}"
+                                
+                                # 处理不同格式的 ToolCall
+                                tool_name = tc.get("name", "Unknown") if isinstance(tc, dict) else getattr(tc, "name", "Unknown")
+                                tool_args = tc.get("args", {}) if isinstance(tc, dict) else getattr(tc, "args", {})
+                                
+                                thoughts_data.append({
+                                    "thought": thought_text,
+                                    "tool": tool_name,
+                                    "tool_input": str(tool_args),
+                                    "observation": "" # 等待下一个 ToolMessage 补充
+                                })
+                                
+                        # 捕获工具执行结果 (Observation)
+                        if latest_msg.type == "tool":
+                            # 找到对应的 thought 记录并补充 observation
+                            for t in reversed(thoughts_data):
+                                if t["tool"] == latest_msg.name and t["observation"] == "":
+                                    obs_str = str(latest_msg.content)
+                                    t["observation"] = obs_str[:500] + ("..." if len(obs_str) > 500 else "")
+                                    break
+                
+                # 在界面上展示思考过程
+                if thoughts_data:
+                    with st.expander("🧠 查看管家的思考与工具调用过程", expanded=False):
+                        for thought in thoughts_data:
+                            if not isinstance(thought, dict):
+                                continue
+                            st.markdown(f"**Thought:**\n{thought.get('thought', '')}")
+                            if thought.get('tool'):
+                                st.markdown(f"🛠️ **Tool:** `{thought.get('tool')}`\n- **Input:** `{thought.get('tool_input', '')}`")
+                            if thought.get('observation'):
+                                st.markdown(f"👁️ **Observation:**\n```\n{thought.get('observation')}\n```")
+                            st.markdown("---")
+                            
+                st.markdown(final_output)
+                
+                # 存入历史记录
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": final_output,
+                    "thoughts": thoughts_data
+                })
+
+            except Exception as e:
+                error_msg = f"发生错误: {str(e)}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
