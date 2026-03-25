@@ -4,6 +4,7 @@ from agent.tools.agent_tools import rag_summarize, get_user_location, get_user_i
     get_current_month, fetch_external_data, fill_context_for_report
 from agent.tools.weather_tool import get_current_weather, get_history_weather, get_forecast_weather, get_air_quality, get_weather_alerts
 from agent.tools.device_tool import get_device_status, get_consumables_life, control_device, set_cleaning_mode, purchase_consumables, get_cleaning_history, diagnose_error, schedule_task, get_scheduled_tasks
+from agent.tools.tavily_tool import web_search
 from agent.tools.middleware import monitor_tool, log_before_model, report_prompt_switch
 from utils.prompt_loader import load_system_prompts
 
@@ -32,7 +33,8 @@ class ReactAgent:
                    get_user_id,
                    get_current_month,
                    fetch_external_data,
-                   fill_context_for_report
+                   fill_context_for_report,
+                   web_search
                    ],
             middleware=[
                 report_prompt_switch,

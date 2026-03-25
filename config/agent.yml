@@ -1,1 +1,2 @@
 external_data_path: data/external/records.csv
+tavily_api_key: "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"  # 请在此处填写你的Tavily API Key
